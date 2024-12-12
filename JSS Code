@@ -1,0 +1,1439 @@
+Add-Type -AssemblyName System.Windows.Forms
+
+# Main Form
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "Welcome to Joe's System Services (JSS)"
+$form.Size = New-Object System.Drawing.Size(800, 600)
+$form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
+$form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+
+# Add Tab Control
+$tabControl = New-Object System.Windows.Forms.TabControl
+$tabControl.Size = New-Object System.Drawing.Size(780, 550)
+$tabControl.Location = New-Object System.Drawing.Point(10, 10)
+
+# Tabs
+$overviewTab = New-Object System.Windows.Forms.TabPage -Property @{ Text = "Overview" }
+$weatherTab = New-Object System.Windows.Forms.TabPage -Property @{ Text = "Weather" }
+$gameTab = New-Object System.Windows.Forms.TabPage -Property @{ Text = "Fun" }
+$scheduleTab = New-Object System.Windows.Forms.TabPage -Property @{ Text = "Task Scheduler" }
+$PrintersTab = New-Object System.Windows.Forms.TabPage -Property @{ Text = "Printers" }
+$certManagerTab = New-Object System.Windows.Forms.TabPage -Property @{ Text = "Cert Manager" }
+$MiscTab = New-Object System.Windows.Forms.TabPage -Property @{ Text = "Miscellaneous" }
+$settingsTab = New-Object System.Windows.Forms.TabPage -Property @{ Text = "Settings" }
+$helpTab = New-Object System.Windows.Forms.TabPage -Property @{ Text = "Help" }
+
+$tabControl.TabPages.AddRange(@($overviewTab, $scheduleTab, $PrintersTab, $certManagerTab, $weatherTab, $gameTab, $MiscTab, $settingsTab, $helpTab))
+$form.Controls.Add($tabControl)
+
+# -------------------------------
+# Overview Tab
+# -------------------------------
+
+# Panel for general info
+$generalInfoPanel = New-Object System.Windows.Forms.Panel
+$generalInfoPanel.Location = New-Object System.Drawing.Point(10, 10)
+$generalInfoPanel.Size = New-Object System.Drawing.Size(760, 150)
+$generalInfoPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$generalInfoPanel.BackColor = [System.Drawing.Color]::LightBlue
+$overviewTab.Controls.Add($generalInfoPanel)
+
+# Extract user's first name from certificate or fallback to username. Idk why its not working but it's good enough
+try {
+    $store = New-Object System.Security.Cryptography.X509Certificates.X509Store "My", "CurrentUser"
+    $store.Open("ReadOnly")
+    $userName = $env:USERNAME
+    foreach ($cert in $store.Certificates) {
+        if ($cert.SubjectName.Name -match "CN=([^,]+)") {
+            $fullName = $matches[1]  # Extract full name from CN
+            $userName = ($fullName -split "\s+")[0]  # Extract first word as first name
+            break
+        }
+    }
+    $store.Close()
+} catch {
+    $userName = $env:USERNAME  # Fallback to username if extraction fails
+}
+
+
+# Label: Greeting with user name
+$greetingLabel = New-Object System.Windows.Forms.Label
+$greetingLabel.Text = "Hello, $userName! Welcome to Joe's System Service (JSS)!"
+$greetingLabel.Font = New-Object System.Drawing.Font("Arial", 16, [System.Drawing.FontStyle]::Bold)
+$greetingLabel.ForeColor = [System.Drawing.Color]::DarkBlue
+$greetingLabel.Location = New-Object System.Drawing.Point(10, 10)
+
+# Set MaximumSize to restrict the width, causing the text to wrap automatically
+$greetingLabel.MaximumSize = New-Object System.Drawing.Size(740, 0) # Max width of the panel, unlimited height
+$greetingLabel.AutoSize = $true
+$generalInfoPanel.Controls.Add($greetingLabel)
+
+
+# Label: Current Date and Time
+$dateTimeLabel = New-Object System.Windows.Forms.Label
+$dateTimeLabel.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Regular)
+$dateTimeLabel.ForeColor = [System.Drawing.Color]::Black
+$dateTimeLabel.Location = New-Object System.Drawing.Point(10, 80)
+$dateTimeLabel.AutoSize = $true
+$dateTimeLabel.Text = "Today's Date: $(Get-Date -Format 'dddd, MMMM dd, yyyy')"
+$generalInfoPanel.Controls.Add($dateTimeLabel)
+
+# Panel for quick actions
+$quickActionsPanel = New-Object System.Windows.Forms.Panel
+$quickActionsPanel.Location = New-Object System.Drawing.Point(10, 170)
+$quickActionsPanel.Size = New-Object System.Drawing.Size(760, 150)
+$quickActionsPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$quickActionsPanel.BackColor = [System.Drawing.Color]::LightGray
+$overviewTab.Controls.Add($quickActionsPanel)
+
+# Label: Quick Actions
+$quickActionsLabel = New-Object System.Windows.Forms.Label
+$quickActionsLabel.Text = "Quick Actions"
+$quickActionsLabel.Font = New-Object System.Drawing.Font("Arial", 14, [System.Drawing.FontStyle]::Bold)
+$quickActionsLabel.Location = New-Object System.Drawing.Point(10, 10)
+$quickActionsLabel.AutoSize = $true
+$quickActionsPanel.Controls.Add($quickActionsLabel)
+
+# Quick Action: Restart PC
+$restartButton = New-Object System.Windows.Forms.Button
+$restartButton.Text = "Restart PC"
+$restartButton.Size = New-Object System.Drawing.Size(120, 40)
+$restartButton.Location = New-Object System.Drawing.Point(10, 50)
+$restartButton.BackColor = [System.Drawing.Color]::LightCoral
+$restartButton.ForeColor = [System.Drawing.Color]::White
+$restartButton.Font = New-Object System.Drawing.Font("Arial", 10, [System.Drawing.FontStyle]::Bold)
+$restartButton.Add_Click({
+    $confirm = [System.Windows.Forms.MessageBox]::Show("Are you sure you want to restart?", "Confirm Restart", [System.Windows.Forms.MessageBoxButtons]::YesNo)
+    if ($confirm -eq [System.Windows.Forms.DialogResult]::Yes) {
+        Restart-Computer -Force
+    }
+})
+$quickActionsPanel.Controls.Add($restartButton)
+
+# Quick Action: Open Task Manager
+$taskManagerButton = New-Object System.Windows.Forms.Button
+$taskManagerButton.Text = "Task Manager"
+$taskManagerButton.Size = New-Object System.Drawing.Size(120, 40)
+$taskManagerButton.Location = New-Object System.Drawing.Point(140, 50)
+$taskManagerButton.BackColor = [System.Drawing.Color]::LightSeaGreen
+$taskManagerButton.ForeColor = [System.Drawing.Color]::White
+$taskManagerButton.Font = New-Object System.Drawing.Font("Arial", 10, [System.Drawing.FontStyle]::Bold)
+$taskManagerButton.Add_Click({
+    Start-Process -FilePath "taskmgr.exe"
+})
+$quickActionsPanel.Controls.Add($taskManagerButton)
+
+# Quick Action: Toggle Dark Mode
+$darkModeButton = New-Object System.Windows.Forms.Button
+$darkModeButton.Text = "Toggle Dark Mode"
+$darkModeButton.Size = New-Object System.Drawing.Size(120, 40)
+$darkModeButton.Location = New-Object System.Drawing.Point(270, 50)
+$darkModeButton.BackColor = [System.Drawing.Color]::LightSlateGray
+$darkModeButton.ForeColor = [System.Drawing.Color]::White
+$darkModeButton.Font = New-Object System.Drawing.Font("Arial", 10, [System.Drawing.FontStyle]::Bold)
+$darkModeButton.Add_Click({
+    $controls = @($form, $tabControl, $overviewTab, $weatherTab, $gameTab, $scheduleTab, $certManagerTab, $settingsTab, $helpTab)
+    foreach ($control in $controls) {
+        if ($control.BackColor -eq [System.Drawing.Color]::White) {
+            $control.BackColor = [System.Drawing.Color]::Black
+            $control.ForeColor = [System.Drawing.Color]::White
+        } else {
+            $control.BackColor = [System.Drawing.Color]::White
+            $control.ForeColor = [System.Drawing.Color]::Black
+        }
+    }
+})
+$quickActionsPanel.Controls.Add($darkModeButton)
+
+# Quick Action: Open Control Panel
+$controlPanelButton = New-Object System.Windows.Forms.Button
+$controlPanelButton.Text = "Control Panel"
+$controlPanelButton.Size = New-Object System.Drawing.Size(120, 40)
+$controlPanelButton.Location = New-Object System.Drawing.Point(400, 50)
+$controlPanelButton.BackColor = [System.Drawing.Color]::MediumPurple
+$controlPanelButton.ForeColor = [System.Drawing.Color]::White
+$controlPanelButton.Font = New-Object System.Drawing.Font("Arial", 10, [System.Drawing.FontStyle]::Bold)
+$controlPanelButton.Add_Click({
+    Start-Process -FilePath "control.exe"
+})
+$quickActionsPanel.Controls.Add($controlPanelButton)
+
+# Panel for motivational quote or fun fact
+$motivationPanel = New-Object System.Windows.Forms.Panel
+$motivationPanel.Location = New-Object System.Drawing.Point(10, 330)
+$motivationPanel.Size = New-Object System.Drawing.Size(760, 120)  # Increased height for long quotes
+$motivationPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$motivationPanel.BackColor = [System.Drawing.Color]::Lavender
+$overviewTab.Controls.Add($motivationPanel)
+
+# Random motivational quote or fun fact
+$funFacts = @(
+    "Did you know? The first computer bug was an actual moth!",
+    "Fun Fact: Your keyboard is dirtier than a toilet seat. Wash those hands!",
+    "Motivation: Keep pushing forward; even broken clocks are right twice a day!",
+    "When I let go of what I am, I become what I might be.",
+    "Muddy water is best cleared by leaving it alone.",
+    "Geek Humor: There are 10 types of people in the world: those who understand binary and those who don't.",
+    "Programming Wisdom: Debugging is like being a detective in a crime movie where you are also the murderer.",
+    "A journey of a thousand miles begins with a single step.",
+    "Nature does not hurry, yet everything is accomplished.",
+    "The soft overcomes the hard; the weak overcomes the strong.",
+    "Keep Calm: Compiling is just a fancy way to say 'Thinking...'",
+    "If you like this creation, please consider donating to me! Paypal @ JdoubleS98",
+    "Think Big: Your code is one semicolon away from greatness."
+)
+
+# Select a random fact or quote
+$selectedFact = $funFacts | Get-Random
+
+# Label: Motivational Quote
+$quoteLabel = New-Object System.Windows.Forms.Label
+$quoteLabel.Text = $selectedFact
+$quoteLabel.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Italic)
+$quoteLabel.ForeColor = [System.Drawing.Color]::DarkMagenta
+$quoteLabel.Location = New-Object System.Drawing.Point(10, 10)
+$quoteLabel.Size = New-Object System.Drawing.Size(740, 100)  # Fixed size to enable wrapping
+$quoteLabel.AutoSize = $false  # Turn off AutoSize to enable multi-line text
+$quoteLabel.TextAlign = [System.Drawing.ContentAlignment]::TopLeft  # Align text to the top-left
+$motivationPanel.Controls.Add($quoteLabel)
+
+# Label for PC Name or File Path input
+$miscPcNameLabel = New-Object System.Windows.Forms.Label
+$miscPcNameLabel.Text = "Enter PC Name or File Path:"
+$miscPcNameLabel.Location = New-Object System.Drawing.Point(10, 10)
+$miscPcNameLabel.Size = New-Object System.Drawing.Size(200, 20)
+$MiscTab.Controls.Add($miscPcNameLabel)
+
+# TextBox for PC Name or File Path input
+$miscPcNameTextBox = New-Object System.Windows.Forms.TextBox
+$miscPcNameTextBox.Location = New-Object System.Drawing.Point(10, 30)
+$miscPcNameTextBox.Size = New-Object System.Drawing.Size(460, 20)
+$MiscTab.Controls.Add($miscPcNameTextBox)
+
+# Status Label for Feedback
+$miscStatusLabel = New-Object System.Windows.Forms.Label
+$miscStatusLabel.Text = "Status: Waiting for input..."
+$miscStatusLabel.Location = New-Object System.Drawing.Point(10, 320)
+$miscStatusLabel.Size = New-Object System.Drawing.Size(460, 20)
+$MiscTab.Controls.Add($miscStatusLabel)
+
+# -------------------------------
+# Option: Speak Message
+# -------------------------------
+$speakLabel = New-Object System.Windows.Forms.Label
+$speakLabel.Text = "Enter Message for Text-to-Speech:"
+$speakLabel.Location = New-Object System.Drawing.Point(10, 60)
+$speakLabel.Size = New-Object System.Drawing.Size(250, 20)
+$MiscTab.Controls.Add($speakLabel)
+
+$speakTextBox = New-Object System.Windows.Forms.TextBox
+$speakTextBox.Location = New-Object System.Drawing.Point(10, 90)
+$speakTextBox.Size = New-Object System.Drawing.Size(460, 20)
+$MiscTab.Controls.Add($speakTextBox)
+
+$speakButton = New-Object System.Windows.Forms.Button
+$speakButton.Text = "Speak Message"
+$speakButton.Location = New-Object System.Drawing.Point(10, 120)
+$speakButton.Size = New-Object System.Drawing.Size(120, 30)
+$MiscTab.Controls.Add($speakButton)
+
+$speakButton.Add_Click({
+    if ([string]::IsNullOrWhiteSpace($speakTextBox.Text)) {
+        $miscStatusLabel.Text = "Status: No message entered for text-to-speech."
+        return
+    }
+
+    $message = $speakTextBox.Text.Trim()
+    $computers = if (Test-Path $miscPcNameTextBox.Text) {
+        Get-Content $miscPcNameTextBox.Text
+    } else {
+        @($miscPcNameTextBox.Text)
+    }
+
+    foreach ($computer in $computers) {
+        try {
+            Invoke-Command -ComputerName $computer -ScriptBlock {
+                param($msg)
+                Add-Type -AssemblyName System.Speech
+                $synthesizer = New-Object System.Speech.Synthesis.SpeechSynthesizer
+                $synthesizer.Speak($msg)
+            } -ArgumentList $message
+            $miscStatusLabel.Text = "Status: Message spoken on $computer."
+        } catch {
+            $miscStatusLabel.Text = "Status: Failed to speak message on $computer. Error: $_"
+        }
+    }
+})
+
+# -------------------------------
+# Option: Toggle Caps Lock
+# -------------------------------
+$capsLockButton = New-Object System.Windows.Forms.Button
+$capsLockButton.Text = "Toggle Caps Lock"
+$capsLockButton.Location = New-Object System.Drawing.Point(140, 120)
+$capsLockButton.Size = New-Object System.Drawing.Size(120, 30)
+$MiscTab.Controls.Add($capsLockButton)
+
+$capsLockButton.Add_Click({
+    $computers = if (Test-Path $miscPcNameTextBox.Text) {
+        Get-Content $miscPcNameTextBox.Text
+    } else {
+        @($miscPcNameTextBox.Text)
+    }
+
+    foreach ($computer in $computers) {
+        try {
+            Invoke-Command -ComputerName $computer -ScriptBlock {
+                $wsh = New-Object -ComObject WScript.Shell
+                $wsh.SendKeys("{CAPSLOCK}")
+            }
+            $miscStatusLabel.Text = "Status: Caps Lock toggled on $computer."
+        } catch {
+            $miscStatusLabel.Text = "Status: Failed to toggle Caps Lock on $computer. Error: $_"
+        }
+    }
+})
+
+#-------------------------------------
+# Option: Change Mouse Sensitivity
+#-------------------------------------
+$mouseSensitivityButton = New-Object System.Windows.Forms.Button
+$mouseSensitivityButton.Text = "Change Mouse Sensitivity"
+$mouseSensitivityButton.Location = New-Object System.Drawing.Point(275, 120)
+$mouseSensitivityButton.Size = New-Object System.Drawing.Size(180, 30)
+$MiscTab.Controls.Add($mouseSensitivityButton)
+
+$mouseSensitivityButton.Add_Click({
+    $computers = if (Test-Path $miscPcNameTextBox.Text) {
+        Get-Content $miscPcNameTextBox.Text
+    } else {
+        @($miscPcNameTextBox.Text)
+    }
+
+    foreach ($computer in $computers) {
+        try {
+            Invoke-Command -ComputerName $computer -ScriptBlock {
+                $scriptPath = "$env:TEMP\ChangeMouseSensitivity.ps1"
+                Set-Content -Path $scriptPath -Value @"
+Set-ItemProperty -Path 'HKCU:\Control Panel\Mouse' -Name 'MouseSensitivity' -Value 10
+"@
+                schtasks /Create /TN ChangeMouseSensitivity /TR "powershell.exe -ExecutionPolicy Bypass -File $scriptPath" /SC ONCE /ST 00:00 /RL HIGHEST /F
+                schtasks /Run /TN ChangeMouseSensitivity
+            }
+            $miscStatusLabel.Text = "Status: Mouse sensitivity task scheduled on $computer."
+        } catch {
+            $miscStatusLabel.Text = "Status: Failed to change mouse sensitivity on $computer. Error: $_"
+        }
+    }
+})
+
+
+# -------------------------------
+# Option: Rotate Screen 90 Degrees
+# -------------------------------
+$rotateScreenButton = New-Object System.Windows.Forms.Button
+$rotateScreenButton.Text = "Rotate Screen 90°"
+$rotateScreenButton.Location = New-Object System.Drawing.Point(10, 160)
+$rotateScreenButton.Size = New-Object System.Drawing.Size(150, 30)
+$MiscTab.Controls.Add($rotateScreenButton)
+
+$rotateScreenButton.Add_Click({
+    $computers = if (Test-Path $miscPcNameTextBox.Text) {
+        Get-Content $miscPcNameTextBox.Text
+    } else {
+        @($miscPcNameTextBox.Text)
+    }
+
+    foreach ($computer in $computers) {
+        try {
+            Invoke-Command -ComputerName $computer -ScriptBlock {
+                # Define and load the required C# code for screen rotation
+                Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public class DisplayRotation {
+    [DllImport("user32.dll")]
+    public static extern int ChangeDisplaySettingsEx(string deviceName, IntPtr devMode, IntPtr hwnd, uint flags, IntPtr param);
+
+    public static void RotateScreen90() {
+        const int DMDO_90 = 1; // Orientation: 90 degrees
+        const int CDS_UPDATEREGISTRY = 0x01; // Update registry
+        ChangeDisplaySettingsEx(null, IntPtr.Zero, IntPtr.Zero, CDS_UPDATEREGISTRY, IntPtr.Zero);
+    }
+}
+"@
+                # Call the RotateScreen90 method to rotate the display
+                [DisplayRotation]::RotateScreen90()
+            }
+            $miscStatusLabel.Text = "Status: Screen rotated 90° on $computer."
+        } catch {
+            $miscStatusLabel.Text = "Status: Failed to rotate screen on $computer. Error: $_"
+        }
+    }
+})
+
+
+# -------------------------------
+# Option: Create Fake File
+# -------------------------------
+$fakeFileButton = New-Object System.Windows.Forms.Button
+$fakeFileButton.Text = "Create Fake File"
+$fakeFileButton.Location = New-Object System.Drawing.Point(170, 160)
+$fakeFileButton.Size = New-Object System.Drawing.Size(150, 30)
+$MiscTab.Controls.Add($fakeFileButton)
+
+$fakeFileButton.Add_Click({
+    $computers = if (Test-Path $miscPcNameTextBox.Text) {
+        Get-Content $miscPcNameTextBox.Text
+    } else {
+        @($miscPcNameTextBox.Text)
+    }
+
+    foreach ($computer in $computers) {
+        try {
+            Invoke-Command -ComputerName $computer -ScriptBlock {
+                $desktopPath = [Environment]::GetFolderPath("Desktop") # Resolves Desktop folder path remotely
+                $filePath = Join-Path -Path $desktopPath -ChildPath "Important_Documents.txt"
+                Set-Content -Path $filePath -Value "This is a very important file."
+            }
+            $miscStatusLabel.Text = "Status: Fake file created on $computer's desktop."
+        } catch {
+            $miscStatusLabel.Text = "Status: Failed to create fake file on $computer. Error: $_"
+        }
+    }
+})
+
+
+# -------------------------------
+# Option: Reset Desktop to Normal
+# -------------------------------
+$resetDesktopButton = New-Object System.Windows.Forms.Button
+$resetDesktopButton.Text = "Reset Desktop"
+$resetDesktopButton.Location = New-Object System.Drawing.Point(330, 160)
+$resetDesktopButton.Size = New-Object System.Drawing.Size(140, 30)
+$MiscTab.Controls.Add($resetDesktopButton)
+
+$resetDesktopButton.Add_Click({
+    $computers = if (Test-Path $miscPcNameTextBox.Text) {
+        Get-Content $miscPcNameTextBox.Text
+    } else {
+        @($miscPcNameTextBox.Text)
+    }
+
+    foreach ($computer in $computers) {
+        try {
+            Invoke-Command -ComputerName $computer -ScriptBlock {
+                Add-Type -TypeDefinition @"
+                using System;
+                using System.Runtime.InteropServices;
+                public class DisplayRotation {
+                    [DllImport("user32.dll")]
+                    public static extern int ChangeDisplaySettingsEx(string deviceName, IntPtr devMode, IntPtr hwnd, uint flags, IntPtr param);
+                    public static void ResetScreen() {
+                        ChangeDisplaySettingsEx(null, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
+                    }
+                }
+"@
+                [DisplayRotation]::ResetScreen()
+            }
+            $miscStatusLabel.Text = "Status: Desktop reset to normal on $computer."
+        } catch {
+            $miscStatusLabel.Text = "Status: Failed to reset desktop on $computer. Error: $_"
+        }
+    }
+})
+
+
+# -------------------------------
+# Weather Tab With Hard Coded Locations & Public API Key
+# -------------------------------
+$weatherLabel = New-Object System.Windows.Forms.Label
+$weatherLabel.Text = "Select a location to get weather:"
+$weatherLabel.Location = New-Object System.Drawing.Point(10, 10)
+$weatherLabel.AutoSize = $true
+$weatherTab.Controls.Add($weatherLabel)
+
+# Dropdown (ComboBox) for locations
+$locationDropdown = New-Object System.Windows.Forms.ComboBox
+$locationDropdown.Location = New-Object System.Drawing.Point(10, 40)
+$locationDropdown.Size = New-Object System.Drawing.Size(200, 20)
+$locationDropdown.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
+$weatherTab.Controls.Add($locationDropdown)
+
+# Predefined locations
+$locations = @{
+    "Manchester, MI (48158)"       = @{ Latitude = "42.1509"; Longitude = "-84.0372" }
+    "Beverly Hills, CA (90210)"    = @{ Latitude = "34.0901"; Longitude = "-118.4065" }
+    "New York, NY (10001)"         = @{ Latitude = "40.7500"; Longitude = "-73.9970" }
+    "Dayton, OH (45424)"           = @{ Latitude = "39.8436"; Longitude = "-84.1177" }
+    "Los Angeles, CA (90001)"      = @{ Latitude = "34.0522"; Longitude = "-118.2437" }
+    "Chicago, IL (60601)"          = @{ Latitude = "41.8832"; Longitude = "-87.6324" }
+    "Houston, TX (77001)"          = @{ Latitude = "29.7604"; Longitude = "-95.3698" }
+    "Phoenix, AZ (85001)"          = @{ Latitude = "33.4484"; Longitude = "-112.0740" }
+    "Philadelphia, PA (19019)"     = @{ Latitude = "39.9526"; Longitude = "-75.1652" }
+    "San Antonio, TX (78201)"      = @{ Latitude = "29.4241"; Longitude = "-98.4936" }
+    "San Diego, CA (92101)"        = @{ Latitude = "32.7157"; Longitude = "-117.1611" }
+    "Dallas, TX (75201)"           = @{ Latitude = "32.7767"; Longitude = "-96.7970" }
+    "San Jose, CA (95101)"         = @{ Latitude = "37.3382"; Longitude = "-121.8863" }
+    "Austin, TX (73301)"           = @{ Latitude = "30.2672"; Longitude = "-97.7431" }
+    "Jacksonville, FL (32099)"     = @{ Latitude = "30.3322"; Longitude = "-81.6557" }
+    "Columbus, OH (43004)"         = @{ Latitude = "39.9612"; Longitude = "-82.9988" }
+    "Indianapolis, IN (46201)"     = @{ Latitude = "39.7684"; Longitude = "-86.1581" }
+    "San Francisco, CA (94101)"    = @{ Latitude = "37.7749"; Longitude = "-122.4194" }
+    "Charlotte, NC (28201)"        = @{ Latitude = "35.2271"; Longitude = "-80.8431" }
+    "Seattle, WA (98101)"          = @{ Latitude = "47.6062"; Longitude = "-122.3321" }
+    "Denver, CO (80201)"           = @{ Latitude = "39.7392"; Longitude = "-104.9903" }
+    "Washington, DC (20001)"       = @{ Latitude = "38.9072"; Longitude = "-77.0369" }
+    "Boston, MA (02101)"           = @{ Latitude = "42.3601"; Longitude = "-71.0589" }
+    "Las Vegas, NV (89101)"        = @{ Latitude = "36.1699"; Longitude = "-115.1398" }
+    "Miami, FL (33101)"            = @{ Latitude = "25.7617"; Longitude = "-80.1918" }
+    "Nashville, TN (37201)"        = @{ Latitude = "36.1627"; Longitude = "-86.7816" }
+    "Portland, OR (97201)"         = @{ Latitude = "45.5152"; Longitude = "-122.6784" }
+    "Atlanta, GA (30301)"          = @{ Latitude = "33.7490"; Longitude = "-84.3880" }
+    "Detroit, MI (48201)"          = @{ Latitude = "42.3314"; Longitude = "-83.0458" }
+}
+
+# Ensure "Manchester, MI" appears first and sort the remaining keys by state
+$sortedKeys = @("Manchester, MI (48158)") + ($locations.Keys | Where-Object { $_ -ne "Manchester, MI (48158)" } | Sort-Object)
+
+# Populate the dropdown with sorted keys
+$locationDropdown.Items.AddRange($sortedKeys)
+
+# Button to fetch weather
+$weatherButton = New-Object System.Windows.Forms.Button
+$weatherButton.Text = "Get Weather"
+$weatherButton.Size = New-Object System.Drawing.Size(140, 30)  # Adjust size for full text
+$weatherButton.Location = New-Object System.Drawing.Point(220, 40)
+$weatherTab.Controls.Add($weatherButton)
+
+# Label to display weather result
+$weatherResult = New-Object System.Windows.Forms.Label
+$weatherResult.Location = New-Object System.Drawing.Point(10, 80)
+$weatherResult.Size = New-Object System.Drawing.Size(500, 150)
+$weatherResult.AutoSize = $true
+$weatherTab.Controls.Add($weatherResult)
+
+# Fetch Weather from NWS API
+$weatherButton.Add_Click({
+    $selectedLocation = $locationDropdown.SelectedItem
+    if ([string]::IsNullOrEmpty($selectedLocation)) {
+        [System.Windows.Forms.MessageBox]::Show("Please select a location from the dropdown.")
+        return
+    }
+
+    # Retrieve latitude and longitude for the selected location
+    $coords = $locations[$selectedLocation]
+    $latitude = $coords.Latitude
+    $longitude = $coords.Longitude
+
+    # Fetch NWS Point Metadata
+    $pointUrl = "https://api.weather.gov/points/$latitude,$longitude"
+    $headers = @{
+        "User-Agent" = "Joe's Dashboard (joe@example.com)"
+    }
+
+    try {
+        $response = Invoke-RestMethod -Uri $pointUrl -Headers $headers
+        $forecastUrl = $response.properties.forecast
+
+        # Fetch Forecast Data
+        $forecastData = Invoke-RestMethod -Uri $forecastUrl -Headers $headers
+        $forecastToday = $forecastData.properties.periods | Select-Object -First 1
+
+        # Determine weather icon
+        $condition = $forecastToday.shortForecast.ToLower()
+        $icon = "☀️"  # Default to sunny
+        if ($condition -match "rain") {
+            $icon = "🌧️"
+        } elseif ($condition -match "snow") {
+            $icon = "❄️"
+        } elseif ($condition -match "cloud") {
+            $icon = "☁️"
+        } elseif ($condition -match "clear") {
+            $icon = "☀️"
+        }
+
+        # Display weather result with icon
+        $weatherResult.Text = "$icon Weather for ${selectedLocation}:nn" +
+                              "Temperature: $($forecastToday.temperature) $($forecastToday.temperatureUnit)n" +
+                              "Condition: $($forecastToday.shortForecast)"
+    } catch {
+        $weatherResult.Text = "Could not fetch weather. Check your connection or try again later."
+    }
+})
+
+# -------------------------------
+# Printers Tab with Credential Support
+# -------------------------------
+
+# Adding Printers Tab to the Tab Control
+$PrintersTab.Text = "Printers"
+
+# Global variables
+$global:Printers = @()
+$global:SelectedCreds = $null
+
+# GroupBox: Print Server and Printer Selection
+$printerSelectionGroupBox = New-Object System.Windows.Forms.GroupBox
+$printerSelectionGroupBox.Text = "Printer Selection"
+$printerSelectionGroupBox.Location = New-Object System.Drawing.Point(10, 5)
+$printerSelectionGroupBox.Size = New-Object System.Drawing.Size(450, 170)
+$PrintersTab.Controls.Add($printerSelectionGroupBox)
+
+# Label: Print Server Selection
+$printServerLabel = New-Object System.Windows.Forms.Label
+$printServerLabel.Text = "Select Print Server:"
+$printServerLabel.Location = New-Object System.Drawing.Point(10, 30)
+$printServerLabel.Size = New-Object System.Drawing.Size(150, 20)
+$printerSelectionGroupBox.Controls.Add($printServerLabel)
+
+# ComboBox: Print Server List
+$printServerComboBox = New-Object System.Windows.Forms.ComboBox
+$printServerComboBox.Location = New-Object System.Drawing.Point(170, 30)
+$printServerComboBox.Size = New-Object System.Drawing.Size(200, 20)
+$printServerComboBox.Items.AddRange(@("\\zhtv-qs-600v", "\\zhtv-qs-601v"))
+$printerSelectionGroupBox.Controls.Add($printServerComboBox)
+
+# Button: Get Printers
+$getPrintersButton = New-Object System.Windows.Forms.Button
+$getPrintersButton.Text = "List Printers"
+$getPrintersButton.Location = New-Object System.Drawing.Point(170, 60)
+$getPrintersButton.Size = New-Object System.Drawing.Size(100, 30)
+$printerSelectionGroupBox.Controls.Add($getPrintersButton)
+
+# Label: Filter Printers
+$searchFilterLabel = New-Object System.Windows.Forms.Label
+$searchFilterLabel.Text = "Filter Printers:"
+$searchFilterLabel.Location = New-Object System.Drawing.Point(10, 100)
+$searchFilterLabel.Size = New-Object System.Drawing.Size(150, 20)
+$printerSelectionGroupBox.Controls.Add($searchFilterLabel)
+
+# TextBox: Filter Printers
+$searchFilterTextBox = New-Object System.Windows.Forms.TextBox
+$searchFilterTextBox.Location = New-Object System.Drawing.Point(170, 100)
+$searchFilterTextBox.Size = New-Object System.Drawing.Size(200, 20)
+$printerSelectionGroupBox.Controls.Add($searchFilterTextBox)
+
+# ComboBox: Printer List
+$printerListComboBox = New-Object System.Windows.Forms.ComboBox
+$printerListComboBox.Location = New-Object System.Drawing.Point(170, 130)
+$printerListComboBox.Size = New-Object System.Drawing.Size(200, 20)
+$printerSelectionGroupBox.Controls.Add($printerListComboBox)
+
+# GroupBox: Credential Management
+$credentialGroupBox = New-Object System.Windows.Forms.GroupBox
+$credentialGroupBox.Text = "Credential Management"
+$credentialGroupBox.Location = New-Object System.Drawing.Point(10, 180)
+$credentialGroupBox.Size = New-Object System.Drawing.Size(450, 70)
+$PrintersTab.Controls.Add($credentialGroupBox)
+
+# Button: Prompt for Credentials
+$credentialsButton = New-Object System.Windows.Forms.Button
+$credentialsButton.Text = "Set Admin Credentials"
+$credentialsButton.Location = New-Object System.Drawing.Point(20, 30)
+$credentialsButton.Size = New-Object System.Drawing.Size(150, 30)
+$credentialsButton.Add_Click({
+    $global:SelectedCreds = Get-Credential -Message "Enter admin credentials for driver installation"
+    if ($global:SelectedCreds) {
+        [System.Windows.Forms.MessageBox]::Show("Credentials set for $($global:SelectedCreds.UserName).", "Credential Confirmation")
+    } else {
+        [System.Windows.Forms.MessageBox]::Show("No credentials were selected.", "Warning")
+    }
+})
+$credentialGroupBox.Controls.Add($credentialsButton)
+
+# GroupBox: PC Name or File Input
+$pcInputGroupBox = New-Object System.Windows.Forms.GroupBox
+$pcInputGroupBox.Text = "PC Name or File Input"
+$pcInputGroupBox.Location = New-Object System.Drawing.Point(10, 260)
+$pcInputGroupBox.Size = New-Object System.Drawing.Size(450, 100)
+$PrintersTab.Controls.Add($pcInputGroupBox)
+
+# Label: PC Name or File Path Input
+$pcNameLabel = New-Object System.Windows.Forms.Label
+$pcNameLabel.Text = "Enter PC Name or File Path:"
+$pcNameLabel.Location = New-Object System.Drawing.Point(10, 30)
+$pcNameLabel.Size = New-Object System.Drawing.Size(150, 20)
+$pcInputGroupBox.Controls.Add($pcNameLabel)
+
+# TextBox: PC Name or File Path Input
+$pcNameTextBox = New-Object System.Windows.Forms.TextBox
+$pcNameTextBox.Location = New-Object System.Drawing.Point(170, 30)
+$pcNameTextBox.Size = New-Object System.Drawing.Size(200, 20)
+$pcInputGroupBox.Controls.Add($pcNameTextBox)
+
+# Button: Browse for File
+$browseFileButton = New-Object System.Windows.Forms.Button
+$browseFileButton.Text = "Browse File"
+$browseFileButton.Location = New-Object System.Drawing.Point(370, 25)
+$browseFileButton.Size = New-Object System.Drawing.Size(75, 30)
+$browseFileButton.Add_Click({
+    $openFileDialog = New-Object System.Windows.Forms.OpenFileDialog
+    $openFileDialog.Filter = "Text Files (*.txt)|*.txt|All Files (*.*)|*.*"
+    if ($openFileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+        $pcNameTextBox.Text = $openFileDialog.FileName
+    }
+})
+$pcInputGroupBox.Controls.Add($browseFileButton)
+
+# GroupBox: Driver Installation Options
+$driverInstallGroupBox = New-Object System.Windows.Forms.GroupBox
+$driverInstallGroupBox.Text = "Driver Installation Options"
+$driverInstallGroupBox.Location = New-Object System.Drawing.Point(10, 370)
+$driverInstallGroupBox.Size = New-Object System.Drawing.Size(450, 100)
+$PrintersTab.Controls.Add($driverInstallGroupBox)
+
+# Button: Install Driver on Single PC
+$installDriverSingleButton = New-Object System.Windows.Forms.Button
+$installDriverSingleButton.Text = "Install Driver (Single PC)"
+$installDriverSingleButton.Location = New-Object System.Drawing.Point(20, 40)
+$installDriverSingleButton.Size = New-Object System.Drawing.Size(150, 30)
+$driverInstallGroupBox.Controls.Add($installDriverSingleButton)
+
+# Button: Install Driver on Multiple PCs
+$installDriverMultiButton = New-Object System.Windows.Forms.Button
+$installDriverMultiButton.Text = "Install Driver (Multiple PCs)"
+$installDriverMultiButton.Location = New-Object System.Drawing.Point(220, 40)
+$installDriverMultiButton.Size = New-Object System.Drawing.Size(150, 30)
+$driverInstallGroupBox.Controls.Add($installDriverMultiButton)
+
+# Event Handlers for Printer Tab Buttons
+
+# Event: Get Printer List
+$getPrintersButton.Add_Click({
+    $printServer = $printServerComboBox.Text
+    if ([string]::IsNullOrWhiteSpace($printServer)) {
+        [System.Windows.Forms.MessageBox]::Show("Please select a print server.")
+        return
+    }
+
+    try {
+        $global:Printers = Get-Printer -ComputerName $printServer | Sort-Object Name
+        $printerListComboBox.Items.Clear()
+        foreach ($printer in $global:Printers) {
+            $printerListComboBox.Items.Add($printer.Name)
+        }
+        [System.Windows.Forms.MessageBox]::Show("Printer list loaded for server: $printServer.")
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show("Failed to load printers from server $printServer. Error: $_")
+    }
+})
+
+# Event: Search/Filter Printers
+$searchFilterTextBox.Add_TextChanged({
+    $filter = $searchFilterTextBox.Text.ToLower()
+    $printerListComboBox.Items.Clear()
+    $global:Printers | Where-Object { $_.Name.ToLower() -like "*$filter*" } | ForEach-Object {
+        $printerListComboBox.Items.Add($_.Name)
+    }
+
+    if ($printerListComboBox.Items.Count -eq 0 -and $filter -ne "") {
+        $printerListComboBox.Items.Add("<No matching printers found>")
+    }
+})
+
+# Event: Install Driver on Single PC
+$installDriverSingleButton.Add_Click({
+    $printServer = $printServerComboBox.Text
+    $selectedPrinter = $printerListComboBox.Text
+    $pcName = $pcNameTextBox.Text
+
+    if ([string]::IsNullOrWhiteSpace($printServer) -or [string]::IsNullOrWhiteSpace($selectedPrinter)) {
+        [System.Windows.Forms.MessageBox]::Show("Please select both a print server and a printer.")
+        return
+    }
+    if ([string]::IsNullOrWhiteSpace($pcName)) {
+        [System.Windows.Forms.MessageBox]::Show("Please enter a PC name or file path.")
+        return
+    }
+    if (-not $global:SelectedCreds) {
+        [System.Windows.Forms.MessageBox]::Show("Admin credentials are required for this task.")
+        return
+    }
+
+    $pcs = if (Test-Path $pcName) { Get-Content $pcName } else { @($pcName) }
+
+    foreach ($pc in $pcs) {
+        Start-Process -FilePath "powershell.exe" -Credential $global:SelectedCreds `
+            -ArgumentList "-NoProfile -Command `"Install-PrinterDriver -PrinterName '$selectedPrinter' -PCName '$pc'`"" `
+            -NoNewWindow -Wait
+    }
+    [System.Windows.Forms.MessageBox]::Show("Driver installed.")
+})
+
+# Event: Install Driver on Multiple PCs
+$installDriverMultiButton.Add_Click({
+    $printServer = $printServerComboBox.Text
+    $selectedPrinter = $printerListComboBox.Text
+    $pcName = $pcNameTextBox.Text
+
+    if ([string]::IsNullOrWhiteSpace($printServer) -or [string]::IsNullOrWhiteSpace($selectedPrinter)) {
+        [System.Windows.Forms.MessageBox]::Show("Please select both a print server and a printer.")
+        return
+    }
+    if ([string]::IsNullOrWhiteSpace($pcName)) {
+        [System.Windows.Forms.MessageBox]::Show("Please enter a PC name or file path.")
+        return
+    }
+    if (-not $global:SelectedCreds) {
+        [System.Windows.Forms.MessageBox]::Show("Admin credentials are required for this task.")
+        return
+    }
+
+    $pcs = if (Test-Path $pcName) { Get-Content $pcName } else { @($pcName) }
+
+    foreach ($pc in $pcs) {
+        Start-Process -FilePath "powershell.exe" -Credential $global:SelectedCreds `
+            -ArgumentList "-NoProfile -Command `"Install-PrinterDriver -PrinterName '$selectedPrinter' -PCName '$pc'`"" `
+            -NoNewWindow -Wait
+    }
+    [System.Windows.Forms.MessageBox]::Show("Driver installed on specified PCs.")
+})
+
+
+# -------------------------------
+# Fun Tab
+# -------------------------------
+
+# Initialize variables
+$global:clickCount = 0
+$global:clickValue = 1
+$global:autoClickers = 0
+$global:clickMultiplier = 1
+$global:goldenCookieChance = 0.05  # 5% chance
+
+# Game description
+$gameLabel = New-Object System.Windows.Forms.Label
+$gameLabel.Text = "Welcome to Joe's Clicker Game! Click the cookie to earn points!"
+$gameLabel.Location = New-Object System.Drawing.Point(10, 10)
+$gameLabel.AutoSize = $true
+$gameTab.Controls.Add($gameLabel)
+
+# Click Counter Label
+$clickCounter = New-Object System.Windows.Forms.Label
+$clickCounter.Text = "Points: 0"
+$clickCounter.Location = New-Object System.Drawing.Point(10, 50)
+$clickCounter.AutoSize = $true
+$gameTab.Controls.Add($clickCounter)
+
+# CPS (Clicks Per Second) Label
+$cpsLabel = New-Object System.Windows.Forms.Label
+$cpsLabel.Text = "CPS: 0"
+$cpsLabel.Location = New-Object System.Drawing.Point(10, 80)
+$cpsLabel.AutoSize = $true
+$gameTab.Controls.Add($cpsLabel)
+
+# Cookie (Clickable Button)
+$cookieButton = New-Object System.Windows.Forms.Button
+$cookieButton.Text = "Click!"
+$cookieButton.Font = New-Object System.Drawing.Font("Arial", 18, [System.Drawing.FontStyle]::Bold)
+$cookieButton.Size = New-Object System.Drawing.Size(100, 100)
+$cookieButton.Location = New-Object System.Drawing.Point(10, 120)
+
+# Cookie Button Click Event
+$cookieButton.Add_Click({
+    # Increment points based on click value and multiplier
+    $global:clickCount += ($global:clickValue * $global:clickMultiplier)
+    $clickCounter.Text = "Points: $global:clickCount"
+
+    # Random chance for Golden Cookie (1 in 2000)
+    if ((Get-Random -Minimum 1 -Maximum 2001) -eq 1) {
+        $global:clickCount += 500  # Grant bonus points
+        $clickCounter.Text = "Points: $global:clickCount"
+        [System.Windows.Forms.MessageBox]::Show("Golden Cookie! You earned 500 bonus points!")
+    }
+})
+
+$gameTab.Controls.Add($cookieButton)
+
+# Upgrade: Increase Click Value
+$upgradeButton = New-Object System.Windows.Forms.Button
+$upgradeButton.Text = "Upgrade Click (+1)"
+$upgradeButton.Size = New-Object System.Drawing.Size(150, 30)
+$upgradeButton.Location = New-Object System.Drawing.Point(120, 120)
+
+# Upgrade Button Click Event
+$upgradeButton.Add_Click({
+    if ($global:clickCount -ge 50) {
+        $global:clickCount -= 50
+        $global:clickValue++
+        $clickCounter.Text = "Points: $global:clickCount"
+        [System.Windows.Forms.MessageBox]::Show("Upgrade purchased! Each click is now worth $global:clickValue points!")
+    } else {
+        [System.Windows.Forms.MessageBox]::Show("Not enough points! You need 50 points to buy this upgrade.")
+    }
+})
+$gameTab.Controls.Add($upgradeButton)
+
+# Upgrade: Advanced Auto-Clicker
+$autoClickerButton = New-Object System.Windows.Forms.Button
+$autoClickerButton.Text = "Buy Auto-Clicker (100)"
+$autoClickerButton.Size = New-Object System.Drawing.Size(150, 30)
+$autoClickerButton.Location = New-Object System.Drawing.Point(120, 160)
+
+# Auto-Clicker Button Click Event
+$autoClickerButton.Add_Click({
+    if ($global:clickCount -ge 100) {
+        $global:clickCount -= 100
+        $global:autoClickers++
+        $clickCounter.Text = "Points: $global:clickCount"
+        [System.Windows.Forms.MessageBox]::Show("Auto-clicker purchased! You now have $global:autoClickers auto-clickers.")
+    } else {
+        [System.Windows.Forms.MessageBox]::Show("Not enough points! You need 100 points to buy an auto-clicker.")
+    }
+})
+$gameTab.Controls.Add($autoClickerButton)
+
+# Late-Game: Click Multiplier
+$multiplierButton = New-Object System.Windows.Forms.Button
+$multiplierButton.Text = "Buy Multiplier x2 (500)"
+$multiplierButton.Size = New-Object System.Drawing.Size(150, 30)
+$multiplierButton.Location = New-Object System.Drawing.Point(120, 200)
+
+# Multiplier Button Click Event
+$multiplierButton.Add_Click({
+    if ($global:clickCount -ge 500) {
+        $global:clickCount -= 500
+        $global:clickMultiplier *= 2
+        $clickCounter.Text = "Points: $global:clickCount"
+        [System.Windows.Forms.MessageBox]::Show("Multiplier purchased! Your clicks are now worth $($global:clickValue * $global:clickMultiplier) points!")
+    } else {
+        [System.Windows.Forms.MessageBox]::Show("Not enough points! You need 500 points to buy this multiplier.")
+    }
+})
+$gameTab.Controls.Add($multiplierButton)
+
+# Auto-Clicker Timer
+$autoClickerTimer = New-Object System.Windows.Forms.Timer
+$autoClickerTimer.Interval = 1000  # 1 second interval
+$autoClickerTimer.Add_Tick({
+    if ($global:autoClickers -gt 0) {
+        $global:clickCount += ($global:autoClickers * $global:clickMultiplier)
+        $clickCounter.Text = "Points: $global:clickCount"
+        $cpsLabel.Text = "CPS: $($global:autoClickers * $global:clickMultiplier)"
+    }
+})
+$autoClickerTimer.Start()
+
+# Reset Button
+$resetButton = New-Object System.Windows.Forms.Button
+$resetButton.Text = "Reset Game"
+$resetButton.Size = New-Object System.Drawing.Size(100, 30)
+$resetButton.Location = New-Object System.Drawing.Point(10, 230)
+
+# Reset Button Click Event
+$resetButton.Add_Click({
+    $global:clickCount = 0
+    $global:clickValue = 1
+    $global:autoClickers = 0
+    $global:clickMultiplier = 1
+    $clickCounter.Text = "Points: 0"
+    $cpsLabel.Text = "CPS: 0"
+    [System.Windows.Forms.MessageBox]::Show("Game reset! All progress has been cleared.")
+})
+$gameTab.Controls.Add($resetButton)
+
+#----------------------------------------------------------------------------------------------
+# Task Scheduler Tab
+#----------------------------------------------------------------------------------------------
+
+# Label for PC Name or File Path input
+$pcNameLabel = New-Object System.Windows.Forms.Label
+$pcNameLabel.Text = "Enter PC Name or File Path:"
+$pcNameLabel.Location = New-Object System.Drawing.Point(10, 10)
+$pcNameLabel.Size = New-Object System.Drawing.Size(200, 20)
+$scheduleTab.Controls.Add($pcNameLabel)
+
+# TextBox for PC Name or File Path input
+$pcNameTextBox = New-Object System.Windows.Forms.TextBox
+$pcNameTextBox.Location = New-Object System.Drawing.Point(10, 30)
+$pcNameTextBox.Size = New-Object System.Drawing.Size(460, 20)
+$scheduleTab.Controls.Add($pcNameTextBox)
+
+# Checkboxes for task selection
+$gpUpdateCheckBox = New-Object System.Windows.Forms.CheckBox
+$gpUpdateCheckBox.Text = "Run Group Policy Update"
+$gpUpdateCheckBox.Location = New-Object System.Drawing.Point(10, 70)
+$gpUpdateCheckBox.Size = New-Object System.Drawing.Size(250, 20)
+$scheduleTab.Controls.Add($gpUpdateCheckBox)
+
+$windowsUpdateCheckBox = New-Object System.Windows.Forms.CheckBox
+$windowsUpdateCheckBox.Text = "Run Windows Update"
+$windowsUpdateCheckBox.Location = New-Object System.Drawing.Point(10, 100)
+$windowsUpdateCheckBox.Size = New-Object System.Drawing.Size(250, 20)
+$scheduleTab.Controls.Add($windowsUpdateCheckBox)
+
+$googleUpdateCheckBox = New-Object System.Windows.Forms.CheckBox
+$googleUpdateCheckBox.Text = "Run Google Update"
+$googleUpdateCheckBox.Location = New-Object System.Drawing.Point(10, 130)
+$googleUpdateCheckBox.Size = New-Object System.Drawing.Size(250, 20)
+$scheduleTab.Controls.Add($googleUpdateCheckBox)
+
+$restartCheckBox = New-Object System.Windows.Forms.CheckBox
+$restartCheckBox.Text = "Restart After Updates"
+$restartCheckBox.Location = New-Object System.Drawing.Point(10, 160)
+$restartCheckBox.Size = New-Object System.Drawing.Size(250, 20)
+$scheduleTab.Controls.Add($restartCheckBox)
+
+# Button to start updates immediately
+$startButton = New-Object System.Windows.Forms.Button
+$startButton.Text = "Start Updates"
+$startButton.Location = New-Object System.Drawing.Point(10, 200)
+$startButton.Size = New-Object System.Drawing.Size(100, 30)
+$scheduleTab.Controls.Add($startButton)
+
+$startButton.Add_Click({
+    # Immediate task execution logic
+    $feedbackLabel.Text = "Status: Immediate updates started..."
+    [System.Windows.Forms.MessageBox]::Show("Immediate updates started. This feature has not been implemented yet.")
+})
+
+# Button to schedule tasks
+$scheduleButton = New-Object System.Windows.Forms.Button
+$scheduleButton.Text = "Schedule Task"
+$scheduleButton.Location = New-Object System.Drawing.Point(120, 200)
+$scheduleButton.Size = New-Object System.Drawing.Size(100, 30)
+$scheduleTab.Controls.Add($scheduleButton)
+
+# Feedback Label for status
+$feedbackLabel = New-Object System.Windows.Forms.Label
+$feedbackLabel.Text = "Status: Waiting..."
+$feedbackLabel.Location = New-Object System.Drawing.Point(10, 250)
+$feedbackLabel.Size = New-Object System.Drawing.Size(460, 20)
+$scheduleTab.Controls.Add($feedbackLabel)
+
+# ProgressBar for task progress
+$progressBar = New-Object System.Windows.Forms.ProgressBar
+$progressBar.Location = New-Object System.Drawing.Point(10, 280)
+$progressBar.Size = New-Object System.Drawing.Size(460, 20)
+$progressBar.Minimum = 0
+$progressBar.Maximum = 100
+$scheduleTab.Controls.Add($progressBar)
+
+# Label for schedule time
+$scheduleTimeLabel = New-Object System.Windows.Forms.Label
+$scheduleTimeLabel.Text = "Schedule Time:"
+$scheduleTimeLabel.Location = New-Object System.Drawing.Point(10, 310)
+$scheduleTimeLabel.Size = New-Object System.Drawing.Size(150, 20)
+$scheduleTab.Controls.Add($scheduleTimeLabel)
+
+# DateTimePicker for custom scheduling time
+$scheduleTimePicker = New-Object System.Windows.Forms.DateTimePicker
+$scheduleTimePicker.Format = [System.Windows.Forms.DateTimePickerFormat]::Custom
+$scheduleTimePicker.CustomFormat = "MMMM dd, yyyy - HH:mm"
+$scheduleTimePicker.Location = New-Object System.Drawing.Point(10, 340)
+$scheduleTimePicker.Size = New-Object System.Drawing.Size(200, 20)
+$scheduleTimePicker.Value = (Get-Date).AddMinutes(10) # Default to 10 minutes from now
+$scheduleTab.Controls.Add($scheduleTimePicker)
+
+# Updated Schedule Button Logic
+$scheduleButton.Add_Click({
+    $feedbackLabel.Text = "Status: Scheduling tasks..."
+    $taskName = "CustomSystemTasks"
+
+    try {
+        # Validate that at least one task is selected
+        if (-not ($gpUpdateCheckBox.Checked -or $windowsUpdateCheckBox.Checked -or $googleUpdateCheckBox.Checked)) {
+            [System.Windows.Forms.MessageBox]::Show("Please select at least one task to schedule.")
+            $feedbackLabel.Text = "Status: No tasks selected to schedule."
+            return
+        }
+
+        # Get the selected date and time
+        $scheduleTime = $scheduleTimePicker.Value
+
+        # Ensure the selected time is in the future
+        if ($scheduleTime -le (Get-Date)) {
+            [System.Windows.Forms.MessageBox]::Show("Please select a future time for scheduling tasks.")
+            $feedbackLabel.Text = "Status: Invalid scheduling time."
+            return
+        }
+
+        # Define task actions based on selected checkboxes
+        $actions = @()
+        if ($gpUpdateCheckBox.Checked) {
+            $actions += New-ScheduledTaskAction -Execute "gpupdate.exe" -Argument "/force"
+        }
+        if ($windowsUpdateCheckBox.Checked) {
+            $actions += New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-Command Install-WindowsUpdate -AcceptAll -AutoReboot"
+        }
+        if ($googleUpdateCheckBox.Checked) {
+            $actions += New-ScheduledTaskAction -Execute "path-to-google-update-exe"  # Replace with actual path
+        }
+
+        # Create a trigger for the specified schedule time
+        $trigger = New-ScheduledTaskTrigger -Once -At $scheduleTime
+
+        # Register the task
+        Register-ScheduledTask -TaskName $taskName -Action $actions -Trigger $trigger -User "NT AUTHORITY\SYSTEM" -RunLevel Highest
+        $feedbackLabel.Text = "Status: Task scheduled successfully for $($scheduleTime.ToString())."
+    } catch {
+        # Handle errors during task scheduling
+        $feedbackLabel.Text = "Error: Failed to schedule task. $_"
+        [System.Windows.Forms.MessageBox]::Show("An error occurred: $_")
+    }
+})
+
+# Broadcast Message Section
+# Label for sending message
+$sendMessageLabel = New-Object System.Windows.Forms.Label
+$sendMessageLabel.Text = "Broadcast a Message:"
+$sendMessageLabel.Location = New-Object System.Drawing.Point(10, 380)
+$sendMessageLabel.Size = New-Object System.Drawing.Size(200, 20)
+$scheduleTab.Controls.Add($sendMessageLabel)
+
+# TextBox for message input
+$messageTextBox = New-Object System.Windows.Forms.TextBox
+$messageTextBox.Location = New-Object System.Drawing.Point(10, 410)
+$messageTextBox.Size = New-Object System.Drawing.Size(460, 20)
+$scheduleTab.Controls.Add($messageTextBox)
+
+# Button to send message
+$sendMessageButton = New-Object System.Windows.Forms.Button
+$sendMessageButton.Text = "Send Message"
+$sendMessageButton.Location = New-Object System.Drawing.Point(10, 440)
+$sendMessageButton.Size = New-Object System.Drawing.Size(100, 30)
+$scheduleTab.Controls.Add($sendMessageButton)
+
+# Event to send the popup message
+$sendMessageButton.Add_Click({
+    $input = $pcNameTextBox.Text
+    $message = $messageTextBox.Text
+
+    if ([string]::IsNullOrWhiteSpace($input)) {
+        [System.Windows.Forms.MessageBox]::Show("Please enter a PC name or file path.")
+        return
+    }
+
+    if ([string]::IsNullOrWhiteSpace($message)) {
+        [System.Windows.Forms.MessageBox]::Show("Please enter a message to send.")
+        return
+    }
+
+    $computers = @()
+
+    try {
+        # Determine if input is a file path or a single PC name
+        if (Test-Path $input) {
+            $computers = Get-Content $input
+        } else {
+            $computers = @($input)
+        }
+
+        foreach ($computer in $computers) {
+            try {
+                Invoke-WmiMethod -Path Win32_Process -Name Create -ArgumentList "msg * $message" -ComputerName $computer
+                [System.Windows.Forms.MessageBox]::Show("Message sent to $computer.")
+            } catch {
+                [System.Windows.Forms.MessageBox]::Show("Failed to send message to $computer. Error: $_")
+            }
+        }
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show("An error occurred: $_")
+    }
+})
+
+
+
+# -------------------------------
+# Cert Manager Tab
+# -------------------------------
+$certLabel = New-Object System.Windows.Forms.Label
+$certLabel.Text = "Manage Certificates: Select certificates to remove."
+$certLabel.Location = New-Object System.Drawing.Point(10, 10)
+$certLabel.AutoSize = $true
+$certManagerTab.Controls.Add($certLabel)
+
+# ListBox to display certificates
+$certListBox = New-Object System.Windows.Forms.ListBox
+$certListBox.Location = New-Object System.Drawing.Point(10, 40)
+$certListBox.Size = New-Object System.Drawing.Size(300, 200)
+$certListBox.SelectionMode = [System.Windows.Forms.SelectionMode]::MultiExtended
+$certManagerTab.Controls.Add($certListBox)
+
+# Button to load certificates
+$loadCertsButton = New-Object System.Windows.Forms.Button
+$loadCertsButton.Text = "Load Certificates"
+$loadCertsButton.Location = New-Object System.Drawing.Point(320, 40)
+$loadCertsButton.Size = New-Object System.Drawing.Size(120, 30)
+$certManagerTab.Controls.Add($loadCertsButton)
+
+# Button to remove selected certificates
+$removeCertsButton = New-Object System.Windows.Forms.Button
+$removeCertsButton.Text = "Remove selected"
+$removeCertsButton.Location = New-Object System.Drawing.Point(320, 80)
+$removeCertsButton.Size = New-Object System.Drawing.Size(120, 30)
+$certManagerTab.Controls.Add($removeCertsButton)
+
+# Event to load certificates into the ListBox
+$loadCertsButton.Add_Click({
+    try {
+        $certListBox.Items.Clear()
+        $store = New-Object System.Security.Cryptography.X509Certificates.X509Store "My", "CurrentUser"
+        $store.Open("ReadOnly")
+        foreach ($cert in $store.Certificates) {
+            # Extract Common Name (CN) from Subject Name
+            $subjectName = $cert.SubjectName.Name
+            $cnMatch = $subjectName -match "CN=([^,]+)"
+            if ($cnMatch) {
+                $commonName = $matches[1]  # Extracted name
+            } else {
+                $commonName = "Unknown Name"  # Fallback if CN is missing
+            }
+            
+            # Add CN and expiration date to ListBox
+            $certListBox.Items.Add("$commonName - Expires: $($cert.NotAfter)")
+        }
+        $store.Close()
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show("Error loading certificates: $_")
+    }
+})
+
+# Event to remove selected certificates
+$removeCertsButton.Add_Click({
+    try {
+        # Open the certificate store in ReadWrite mode
+        $store = New-Object System.Security.Cryptography.X509Certificates.X509Store "My", "CurrentUser"
+        $store.Open("ReadWrite")
+        
+        # Retrieve all certificates in the store
+        $allCerts = $store.Certificates
+        
+        # Retrieve selected certificates from the ListBox
+        $selectedCerts = $certListBox.SelectedItems
+        
+        # Check if there are any selected certificates
+        if ($selectedCerts.Count -eq 0) {
+            [System.Windows.Forms.MessageBox]::Show("No certificates selected to remove.")
+            return
+        }
+
+        # Confirm removal
+        $confirm = [System.Windows.Forms.MessageBox]::Show("Are you sure you want to remove ${($selectedCerts.Count)} selected certificates?", "Confirm Removal", [System.Windows.Forms.MessageBoxButtons]::YesNo)
+        if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) {
+            return
+        }
+
+        # Remove selected certificates
+        foreach ($cert in $allCerts) {
+            if ($cert.SubjectName.Name -match "CN=([^,]+)") {
+                $displayName = "$matches[1] - Expires: $($cert.NotAfter)"
+            } else {
+                $displayName = "Unknown Name - Expires: $($cert.NotAfter)"
+            }
+            
+            if ($selectedCerts.Contains($displayName)) {
+                $store.Remove($cert)
+            }
+        }
+
+        # Close the store and refresh the ListBox
+        $store.Close()
+        [System.Windows.Forms.MessageBox]::Show("Selected certificates removed successfully.")
+        $loadCertsButton.PerformClick() # Reload certificates to reflect changes
+    } catch {
+        # Handle any errors during removal
+        [System.Windows.Forms.MessageBox]::Show("An error occurred while removing certificates: $_")
+    }
+})
+
+
+
+# -------------------------------
+# Settings Tab
+# -------------------------------
+# Button: Toggle Dark Mode
+$darkModeButton = New-Object System.Windows.Forms.Button
+$darkModeButton.Text = "Toggle Dark Mode"
+$darkModeButton.Location = New-Object System.Drawing.Point(10, 10)
+$settingsTab.Controls.Add($darkModeButton)
+
+$darkModeButton.Add_Click({
+    $controls = @($form, $tabControl, $overviewTab, $weatherTab, $gameTab, $scheduleTab, $certManagerTab, $settingsTab, $helpTab)
+    foreach ($control in $controls) {
+        if ($control.BackColor -eq [System.Drawing.Color]::White) {
+            $control.BackColor = [System.Drawing.Color]::Black
+            $control.ForeColor = [System.Drawing.Color]::White
+        } else {
+            $control.BackColor = [System.Drawing.Color]::White
+            $control.ForeColor = [System.Drawing.Color]::Black
+        }
+    }
+})
+
+# -------------------------------
+# Settings Tab
+# -------------------------------
+
+# Label: Reorder Tabs Header
+$reorderTabsHeader = New-Object System.Windows.Forms.Label
+$reorderTabsHeader.Text = "Reorder Tabs"
+$reorderTabsHeader.Font = New-Object System.Drawing.Font("Arial", 16, [System.Drawing.FontStyle]::Bold)
+$reorderTabsHeader.ForeColor = [System.Drawing.Color]::DarkSlateBlue
+$reorderTabsHeader.Location = New-Object System.Drawing.Point(10, 50)
+$reorderTabsHeader.AutoSize = $true
+$settingsTab.Controls.Add($reorderTabsHeader)
+
+# GroupBox: Reorder Tabs
+$reorderGroupBox = New-Object System.Windows.Forms.GroupBox
+$reorderGroupBox.Text = "Rearrange Your Tabs"
+$reorderGroupBox.Font = New-Object System.Drawing.Font("Arial", 10, [System.Drawing.FontStyle]::Regular)
+$reorderGroupBox.ForeColor = [System.Drawing.Color]::Black
+$reorderGroupBox.BackColor = [System.Drawing.Color]::AliceBlue
+$reorderGroupBox.Size = New-Object System.Drawing.Size(330, 200)
+$reorderGroupBox.Location = New-Object System.Drawing.Point(10, 80)
+$reorderGroupBox.Padding = '10'
+$settingsTab.Controls.Add($reorderGroupBox)
+
+# Label: Select Tab
+$selectTabLabel = New-Object System.Windows.Forms.Label
+$selectTabLabel.Text = "Select Tab:"
+$selectTabLabel.Font = New-Object System.Drawing.Font("Arial", 10, [System.Drawing.FontStyle]::Bold)
+$selectTabLabel.Location = New-Object System.Drawing.Point(20, 30)
+$selectTabLabel.AutoSize = $true
+$reorderGroupBox.Controls.Add($selectTabLabel)
+
+# ComboBox: Select Tab to Reorder
+$selectTabComboBox = New-Object System.Windows.Forms.ComboBox
+$selectTabComboBox.Location = New-Object System.Drawing.Point(20, 55)
+$selectTabComboBox.Size = New-Object System.Drawing.Size(200, 25)
+$selectTabComboBox.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
+$reorderGroupBox.Controls.Add($selectTabComboBox)
+
+# Label: New Position
+$newPositionLabel = New-Object System.Windows.Forms.Label
+$newPositionLabel.Text = "New Position:"
+$newPositionLabel.Font = New-Object System.Drawing.Font("Arial", 10, [System.Drawing.FontStyle]::Bold)
+$newPositionLabel.Location = New-Object System.Drawing.Point(20, 90)
+$newPositionLabel.AutoSize = $true
+$reorderGroupBox.Controls.Add($newPositionLabel)
+
+# ComboBox: Select New Position
+$newPositionComboBox = New-Object System.Windows.Forms.ComboBox
+$newPositionComboBox.Location = New-Object System.Drawing.Point(20, 115)
+$newPositionComboBox.Size = New-Object System.Drawing.Size(200, 25)
+$newPositionComboBox.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
+$reorderGroupBox.Controls.Add($newPositionComboBox)
+
+# Button: Reorder Tabs
+$reorderButton = New-Object System.Windows.Forms.Button
+$reorderButton.Text = "Apply Reorder"
+$reorderButton.Font = New-Object System.Drawing.Font("Arial", 10, [System.Drawing.FontStyle]::Bold)
+$reorderButton.Size = New-Object System.Drawing.Size(150, 35)
+$reorderButton.Location = New-Object System.Drawing.Point(20, 150)
+$reorderButton.BackColor = [System.Drawing.Color]::LightSteelBlue
+$reorderButton.ForeColor = [System.Drawing.Color]::Black
+$reorderGroupBox.Controls.Add($reorderButton)
+
+# Function: Populate ComboBoxes
+function Populate-TabComboBoxes {
+    $selectTabComboBox.Items.Clear()
+    $newPositionComboBox.Items.Clear()
+    for ($i = 0; $i -lt $tabControl.TabPages.Count; $i++) {
+        $tabName = $tabControl.TabPages[$i].Text
+        $selectTabComboBox.Items.Add($tabName)
+        $newPositionComboBox.Items.Add("$($i + 1): $tabName")  # Display position and name for clarity
+    }
+    if ($selectTabComboBox.Items.Count -gt 0) {
+        $selectTabComboBox.SelectedIndex = 0
+    }
+    if ($newPositionComboBox.Items.Count -gt 0) {
+        $newPositionComboBox.SelectedIndex = 0
+    }
+}
+
+# Populate ComboBoxes at Startup
+Populate-TabComboBoxes
+
+# Event: Reorder Button Click
+$reorderButton.Add_Click({
+    $selectedTab = $selectTabComboBox.SelectedItem
+    $newPosition = [int]($newPositionComboBox.SelectedItem -split ":")[0] - 1
+
+    if ([string]::IsNullOrEmpty($selectedTab) -or $newPosition -lt 0) {
+        [System.Windows.Forms.MessageBox]::Show("Please select a valid tab and position.")
+        return
+    }
+
+    # Find the tab to move
+    $tabToMove = $tabControl.TabPages | Where-Object { $_.Text -eq $selectedTab }
+
+    if ($tabToMove) {
+        # Remove and re-insert the tab at the new position
+        $tabControl.TabPages.Remove($tabToMove)
+        $tabControl.TabPages.Insert($newPosition, $tabToMove)
+        [System.Windows.Forms.MessageBox]::Show("Tab '$selectedTab' successfully moved to position $($newPosition + 1).")
+    } else {
+        [System.Windows.Forms.MessageBox]::Show("Tab '$selectedTab' not found.")
+    }
+
+    # Refresh ComboBoxes
+    Populate-TabComboBoxes
+})
+
+
+# -------------------------------
+# Help Tab
+# -------------------------------
+
+# Panel for Help Section
+$helpPanel = New-Object System.Windows.Forms.Panel
+$helpPanel.Location = New-Object System.Drawing.Point(10, 10)
+$helpPanel.Size = New-Object System.Drawing.Size(760, 500)
+$helpPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$helpTab.Controls.Add($helpPanel)
+
+# Label: Help Header
+$helpHeaderLabel = New-Object System.Windows.Forms.Label
+$helpHeaderLabel.Text = "Help Page"
+$helpHeaderLabel.Font = New-Object System.Drawing.Font("Arial", 16, [System.Drawing.FontStyle]::Bold)
+$helpHeaderLabel.ForeColor = [System.Drawing.Color]::DarkBlue
+$helpHeaderLabel.Location = New-Object System.Drawing.Point(10, 10)
+$helpHeaderLabel.AutoSize = $true
+$helpPanel.Controls.Add($helpHeaderLabel)
+
+# Label: Welcome Message
+$welcomeLabel = New-Object System.Windows.Forms.Label
+$welcomeLabel.Text = "Welcome to Joe's Dashboard! Here's some guidance:"
+$welcomeLabel.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Regular)
+$welcomeLabel.Location = New-Object System.Drawing.Point(10, 50)
+$welcomeLabel.AutoSize = $true
+$helpPanel.Controls.Add($welcomeLabel)
+
+# Label: Help Description
+$helpDescriptionLabel = New-Object System.Windows.Forms.Label
+$helpDescriptionLabel.Text = @"
+- Navigate through the tabs to access various features.
+- Quick actions and task scheduling are available for your convenience.
+- For any issues, try the manual approach or check out my GitHub repository 
+(There is no helpful information there but have a look at my projects)!
+"@
+$helpDescriptionLabel.Font = New-Object System.Drawing.Font("Arial", 10, [System.Drawing.FontStyle]::Regular)
+$helpDescriptionLabel.Location = New-Object System.Drawing.Point(10, 90)
+$helpDescriptionLabel.Size = New-Object System.Drawing.Size(740, 120)
+$helpDescriptionLabel.AutoSize = $false
+$helpDescriptionLabel.TextAlign = [System.Drawing.ContentAlignment]::TopLeft
+$helpPanel.Controls.Add($helpDescriptionLabel)
+
+# Label: GitHub Support Link
+$githubLabel = New-Object System.Windows.Forms.Label
+$githubLabel.Text = "For support, visit GitHub: https://github.com/jdublz"
+$githubLabel.Font = New-Object System.Drawing.Font("Arial", 10, [System.Drawing.FontStyle]::Italic)
+$githubLabel.ForeColor = [System.Drawing.Color]::Blue
+$githubLabel.Location = New-Object System.Drawing.Point(10, 430)
+$githubLabel.AutoSize = $true
+$helpPanel.Controls.Add($githubLabel)
+
+# Label: Footer Message
+$footerLabel = New-Object System.Windows.Forms.Label
+$footerLabel.Text = "Thank you for using Joe's Dashboard!"
+$footerLabel.Font = New-Object System.Drawing.Font("Arial", 10, [System.Drawing.FontStyle]::Regular)
+$footerLabel.ForeColor = [System.Drawing.Color]::DarkGreen
+$footerLabel.Location = New-Object System.Drawing.Point(10, 460)
+$footerLabel.AutoSize = $true
+$helpPanel.Controls.Add($footerLabel)
+
+# Run Form
+[void]$form.ShowDialog()
